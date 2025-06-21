@@ -1,26 +1,54 @@
-import { Injectable } from '@nestjs/common';
-import { CreateAuthDto } from './dto/create-auth.dto';
-import { UpdateAuthDto } from './dto/update-auth.dto';
+import {
+  ConflictException,
+  Injectable,
+  InternalServerErrorException,
+} from '@nestjs/common';
+import { RegisterDto } from './dto/register.dto';
+import { UserService } from 'src/user/user.service';
+import { AuthMethod, User } from 'prisma/generated';
+import { Request } from 'express';
 
 @Injectable()
 export class AuthService {
-  create(createAuthDto: CreateAuthDto) {
-    return 'This action adds a new auth';
+  public constructor(private readonly userService: UserService) {}
+
+  public async register(dto: RegisterDto, req: Request) {
+    const isExist = await this.userService.findByEmail(dto.email);
+
+    if (isExist) {
+      throw new ConflictException('User already exists');
+    }
+
+    const newUser = await this.userService.create(
+      dto.email,
+      dto.password,
+      dto.name,
+      '',
+      AuthMethod.CREDENTIALS,
+      false,
+    );
+
+    return this.saveSession(newUser, req);
   }
 
-  findAll() {
-    return `This action returns all auth`;
-  }
+  public async login() {}
 
-  findOne(id: number) {
-    return `This action returns a #${id} auth`;
-  }
+  public async logout() {}
 
-  update(id: number, updateAuthDto: UpdateAuthDto) {
-    return `This action updates a #${id} auth`;
-  }
+  private async saveSession(user: User, req: Request) {
+    return new Promise((resolve, reject) => {
+      req.session.userId = user.id;
 
-  remove(id: number) {
-    return `This action removes a #${id} auth`;
+      req.session.save((err) => {
+        if (err) {
+          console.error(err);
+          return reject(
+            new InternalServerErrorException('Failed to save session'),
+          );
+        }
+
+        resolve({ user });
+      });
+    });
   }
 }

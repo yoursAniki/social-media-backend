@@ -1,26 +1,64 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { AuthMethod } from 'prisma/generated';
+import { hash } from 'argon2';
 
 @Injectable()
 export class UserService {
-  create(createUserDto: CreateUserDto) {
-    return 'This action adds a new user';
+  public constructor(private readonly prismaService: PrismaService) {}
+
+  public async findById(id: string) {
+    const user = await this.prismaService.user.findUnique({
+      where: { id },
+      include: {
+        accounts: true,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException(
+        'User not found. Please check your credentials.',
+      );
+    }
+
+    return user;
   }
 
-  findAll() {
-    return `This action returns all user`;
+  public async findByEmail(email: string) {
+    const user = await this.prismaService.user.findUnique({
+      where: { email },
+      include: {
+        accounts: true,
+      },
+    });
+
+    return user;
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} user`;
-  }
+  public async create(
+    email: string,
+    password: string,
+    displayName: string,
+    picture: string,
+    method: AuthMethod,
+    isVerified: boolean,
+  ) {
+    const user = await this.prismaService.user.create({
+      data: {
+        email,
+        password: password ? await hash(password) : '',
+        displayName,
+        picture,
+        method,
+        isVerified,
+      },
+      include: {
+        accounts: true,
+      },
+    });
 
-  update(id: number, updateUserDto: UpdateUserDto) {
-    return `This action updates a #${id} user`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} user`;
+    return user;
   }
 }
