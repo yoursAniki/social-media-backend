@@ -8,12 +8,17 @@ import * as session from 'express-session';
 import { ms, StringValue } from './libs/common/utils/ms.util';
 import { parseBoolean } from './libs/common/utils/parse-boolean.util';
 import { RedisStore } from 'connect-redis';
+import { createClient } from 'redis';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   const config = app.get(ConfigService);
-  const redis = new IORedis.default(config.getOrThrow<string>('REDIS_URI'));
+  // const redis = new IORedis.default(config.getOrThrow<string>('REDIS_URI'));
+  const redisClient = createClient({
+    url: config.getOrThrow<string>('REDIS_URI'),
+  });
+  await redisClient.connect();
 
   app.use(cookieParser(config.getOrThrow<string>('COOKIES_SECRET')));
 
@@ -37,9 +42,9 @@ async function bootstrap() {
         sameSite: 'lax',
       },
       store: new RedisStore({
-        client: redis,
+        client: redisClient,
         prefix: config.getOrThrow<string>('SESSION_FOLDER'),
-      })
+      }),
     }),
   );
 
