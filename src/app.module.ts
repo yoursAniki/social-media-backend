@@ -6,6 +6,7 @@ import { IS_DEV_ENV } from './libs/common/utils/is-dev.util';
 import { PrismaModule } from './prisma/prisma.module';
 import { MailModule } from './mail/mail.module';
 import { EmailConfirmationModule } from './auth/email-confirmation/email-confirmation.module';
+import { PasswordRecoveryModule } from './auth/password-recovery/password-recovery.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { EmailConfirmationModule } from './auth/email-confirmation/email-confirm
     PrismaModule,
     MailModule,
     EmailConfirmationModule,
+    PasswordRecoveryModule,
   ],
   controllers: [],
   providers: [],
